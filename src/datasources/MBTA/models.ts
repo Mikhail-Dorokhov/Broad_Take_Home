@@ -3,10 +3,9 @@ export enum RouteType {
     HEAVY_RAIL = 1
 }
 export type RouteData = {
+    id: string,
     attributes: {
         short_name: string,
         long_name: string,
-        type: number,
-        description: string,
     }
 }
