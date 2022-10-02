@@ -4,9 +4,13 @@ import { RouteData, RouteType } from "./datasources/MBTA/models";
 async function main() {
     const api = new MbtaApiIntegration();
 
-    //ask for first stop
+    const args = process.argv.slice(2);
 
-    //ask for second stop
+    //Get the stops the user passed in on the command line
+    if (args.length !== 2) {
+        throw Error("You must pass in 2 stop names, each in quotes, and seperated by a space")
+    }
+    console.log(args);
 
     //find out which routes the given stops are on
 
