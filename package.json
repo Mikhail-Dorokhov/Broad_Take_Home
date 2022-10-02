@@ -1,7 +1,8 @@
 {
   "scripts": {
     "q1": "tsc && node ./build/question1.js",
-    "q2": "tsc && node ./build/question2.js"
+    "q2": "tsc && node ./build/question2.js",
+    "q3": "tsc && node ./build/question3.js"
   },
   "dependencies": {
     "axios": "^0.27.2",
