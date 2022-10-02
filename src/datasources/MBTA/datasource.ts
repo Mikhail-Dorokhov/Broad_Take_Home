@@ -22,6 +22,6 @@ export class MbtaApiIntegration {
             baseURL: this.baseUrl,
             url: `/stops?route=${id}` 
         });
-        return line;
+        return line.data.data;
     }
 }
