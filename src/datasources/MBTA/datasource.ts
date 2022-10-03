@@ -44,4 +44,35 @@ export class MbtaApiIntegration {
 
     return routeToStopNamesMap;
   }
+
+  buildConnectionsMap(routeToStopsMap: Map<string, string[]>) {
+    const stopToRoutesMap = new Map<string, string[]>();
+    //Take the current map of Route to Stops and flip it to be a map of
+    // Stop to Routes. This works since connecting stops have the same name
+    //in each Route's list of stops.
+    for (const route of routeToStopsMap.keys()) {
+      const stops = routeToStopsMap.get(route);
+      for (const stop of stops ?? []) {
+        const routes = stopToRoutesMap.get(stop);
+
+        if (!routes) {
+          // We have to create a new entry for the list of Routes that service this stop
+          stopToRoutesMap.set(stop, [route]);
+        } else {
+          // We have to add a Route to the list of Routes that service this stop
+          stopToRoutesMap.set(stop, [...routes, route]);
+        }
+      }
+    }
+
+    //Now that we have the map we have to find the entries with values set to a length > 1
+    stopToRoutesMap.forEach((routes, stop) => {
+      // If there is only one route for the stop it isn't a
+      // connecting station so we delete it from the map
+      if (routes.length < 1) {
+        stopToRoutesMap.delete(stop);
+      }
+    });
+    return stopToRoutesMap;
+  }
 }
