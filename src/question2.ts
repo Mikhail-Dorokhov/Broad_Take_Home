@@ -1,6 +1,7 @@
 import { MbtaApiIntegration } from "./datasources/MBTA/datasource";
 import { RouteData, RouteType } from "./datasources/MBTA/models";
 
+// Type to represent a pairing of a Route name and it's length
 type routeToStopCount = { route: string; numStops: number };
 
 function findShortestAndLongestRoutes(routesMap: Map<string, string[]>): {
@@ -57,9 +58,7 @@ async function main() {
   //Return a list of stops that connect 2 or more Routes + those Routes names
   const connections = api.buildConnectionsMap(routeToStopNamesMap);
   connections.forEach((routes, stop) => {
-    if (routes.length > 1) {
-      console.log(`${stop} connects the following lines: ${routes}`);
-    }
+    console.log(`${stop} connects the following lines: ${routes}`);
   });
 }
 

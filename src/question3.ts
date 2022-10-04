@@ -18,7 +18,7 @@ function findConnectingStation(
   return null;
 }
 
-function buildRouteListWithTransfers(
+function buildRouteList(
   startRoute: string[],
   endRoute: string[],
   connectionsMap: Map<string, string[]>
@@ -59,7 +59,9 @@ function buildRouteListWithTransfers(
   }
 }
 
-/** Current limitations:
+/** This function takes in 2 stops and returns the route(s) that one would use to traverse betweeen them
+ *
+ * Current limitations:
  *      If there are muliple direct connection between stops, will not return all of the connections
  *          Ex: overlapping Green line stops
  *      Does not support finding multiple connecting lines(This case does not exist for Light or Heavy rail)
@@ -82,8 +84,9 @@ async function getRoutesString(
     RouteType.HEAVY_RAIL,
   ]);
   const connectionsMap = await api.buildConnectionsMap(stopsMap);
-  //find out which routes the given stops are on
 
+  // Since a stop can have multiple routes, we build a list of all possible starting
+  // and ending routes
   stopsMap.forEach((stops, route) => {
     if (stops.includes(startStop)) {
       startRoutes.push(route);
@@ -93,21 +96,21 @@ async function getRoutesString(
     }
   });
 
-  // Both stops are on the same route
   if (
     startRoutes.length === 1 &&
     endRoutes.length === 1 &&
     startRoutes[0] === endRoutes[0]
   ) {
+    // Both stops are on the same route
     return startRoutes[0];
   } else if (startRoutes.length === 1 && endRoutes.length > 1) {
-    // The 2 stops directly connect to each other(Ex: Red to Orange)
     if (endRoutes.includes(startRoutes[0])) {
+      // The 2 stops directly connect to each other(Ex: Red to Orange)
       return startRoutes[0];
     }
   } else if (startRoutes.length > 1 && endRoutes.length === 1) {
-    // The 2 stops directly connect to each other(Ex: Red to Orange)
     if (startRoutes.includes(endRoutes[0])) {
+      // The 2 stops directly connect to each other(Ex: Red to Orange)
       return endRoutes[0];
     }
   } else {
@@ -141,7 +144,7 @@ async function getRoutesString(
     }
   }
 
-  return buildRouteListWithTransfers(startRoutes, endRoutes, connectionsMap);
+  return buildRouteList(startRoutes, endRoutes, connectionsMap);
 }
 
 async function main() {

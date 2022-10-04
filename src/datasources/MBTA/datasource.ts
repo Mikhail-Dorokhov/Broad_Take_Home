@@ -1,10 +1,13 @@
 import axios from "axios";
-import { RouteData, RouteType } from "./models";
+import { RouteData, RouteType, StopData } from "./models";
 
 export class MbtaApiIntegration {
   private baseUrl = "https://api-v3.mbta.com";
 
-  // Returns the Routes of the given types.
+  /**
+   * Returns the Routes of the given types.
+   * I chose to use the filters that exist in the API to reduce the amount of API calls I needed to make.
+   */
   async getRoutesByType(routeTypes: RouteType[]) {
     const routes = await axios({
       method: "get",
@@ -38,18 +41,21 @@ export class MbtaApiIntegration {
       const stops = await this.getStopsByRouteIds(routeId);
       routeToStopNamesMap.set(
         routeId,
-        stops.map((stop: { attributes: { name: any } }) => stop.attributes.name)
+        stops.map((stop: StopData) => stop.attributes.name)
       );
     }
 
     return routeToStopNamesMap;
   }
 
+  /**
+   * Builds a map of stations that connect multiple routes.
+   * This information enables us to build a list of Routes that traverse 2 stops
+   * @param routeToStopsMap is a map of Route: Stops on that Route
+   * @returns  a Map of Stop: Routes that service that stop
+   */
   buildConnectionsMap(routeToStopsMap: Map<string, string[]>) {
     const stopToRoutesMap = new Map<string, string[]>();
-    //Take the current map of Route to Stops and flip it to be a map of
-    // Stop to Routes. This works since connecting stops have the same name
-    //in each Route's list of stops.
     for (const route of routeToStopsMap.keys()) {
       const stops = routeToStopsMap.get(route);
       for (const stop of stops ?? []) {
