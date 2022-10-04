@@ -8,7 +8,7 @@ To run this project, you need to have Node version 7.6 or higher installed (For 
 
 Once you've pulled down the repo CD into the directory run the following:
 
-        ```npm i```
+        npm i
 
 Then you can run any of the parts of the problem with:
         ```
