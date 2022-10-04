@@ -54,7 +54,6 @@ export class MbtaApiIntegration {
       const stops = routeToStopsMap.get(route);
       for (const stop of stops ?? []) {
         const routes = stopToRoutesMap.get(stop);
-
         if (!routes) {
           // We have to create a new entry for the list of Routes that service this stop
           stopToRoutesMap.set(stop, [route]);
@@ -69,7 +68,7 @@ export class MbtaApiIntegration {
     stopToRoutesMap.forEach((routes, stop) => {
       // If there is only one route for the stop it isn't a
       // connecting station so we delete it from the map
-      if (routes.length < 1) {
+      if (routes.length <= 1) {
         stopToRoutesMap.delete(stop);
       }
     });
