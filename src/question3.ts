@@ -18,70 +18,11 @@ function findConnectingStation(
   return null;
 }
 
-async function q3(startStop: string, endStop: string): Promise<string> {
-  const api = new MbtaApiIntegration();
-
-  let startRoute: string[] = [];
-  let endRoute: string[] = [];
-
-  const stopsMap = await api.buildStopsToRoutesMap([
-    RouteType.LIGHT_RAIL,
-    RouteType.HEAVY_RAIL,
-  ]);
-  const connectionsMap = await api.buildConnectionsMap(stopsMap);
-  //find out which routes the given stops are on
-
-  stopsMap.forEach((stops, route) => {
-    if (stops.includes(startStop)) {
-      startRoute.push(route);
-    }
-    if (stops.includes(endStop)) {
-      endRoute.push(route);
-    }
-  });
-
-  // Both stops are on the same route
-  if (
-    startRoute.length === 1 &&
-    endRoute.length === 1 &&
-    startRoute[0] === endRoute[0]
-  ) {
-    return startRoute[0];
-  } else if (startRoute.length === 1 && endRoute.length > 1) {
-    if (endRoute.includes(startRoute[0])) {
-      return startRoute[0];
-    }
-  } else if (startRoute.length > 1 && endRoute.length === 1) {
-    if (startRoute.includes(endRoute[0])) {
-      return endRoute[0];
-    }
-  } else {
-    //Both stops have multiple routes that serve them.
-    // First we will check if both stops share a route
-    const commonRoutes = startRoute.filter((route) => endRoute.includes(route));
-    if (commonRoutes.length > 0) {
-      return commonRoutes[0];
-    }
-    // If they don't we'll have to check for connections between lines
-
-    let directConnection = false;
-    for (const start of startRoute) {
-      for (const end of endRoute) {
-        const connectingStation = findConnectingStation(
-          start,
-          end,
-          connectionsMap
-        );
-        if (connectingStation) {
-          directConnection = true;
-        }
-      }
-    }
-    if (directConnection) {
-      return `${startRoute}, ${endRoute}`;
-    }
-  }
-
+function buildRouteListWithTransfers(
+  startRoute: string[],
+  endRoute: string[],
+  connectionsMap: Map<string, string[]>
+): string {
   let startRouteConnections: string[] = [];
   let endRouteConnections: string[] = [];
 
@@ -106,7 +47,6 @@ async function q3(startStop: string, endStop: string): Promise<string> {
     endRouteConnections.includes(route)
   );
   // No direct connection between the 2 routes so we have to check if they have mutual connections
-
   switch (commonConnections.length) {
     case 0:
       throw new Error(
@@ -117,21 +57,93 @@ async function q3(startStop: string, endStop: string): Promise<string> {
     default:
       return `${startRoute}, [${commonConnections.join(" OR ")}], ${endRoute}`;
   }
-
-  // How to model connections between routes?
-  //      List of routes to connecting stop?
-  //      Ex: [Red, Orange]: Downtown Crossing
-  //    Or is existing map of Stop: Routes[] fine?
-  // Both will contain the same information but in a different order so either should work
-  // But we already have a function to build the Map of Stop: Routes[] so we'll go with that
-
-  // What happens if lines are not directly connected?
-  // Ex: Blue to Red
-  //  Find lines that they are connected to and check for connenctions between those lines
-  // Future enhancements: Find the shortest connection between the 2 lines
-
-  // Return a list of stops that will get you from the source to the dest
 }
+
+/** Current limitations:
+ *      If there are muliple direct connection between stops, will not return all of the connections
+ *          Ex: overlapping Green line stops
+ *      Does not support finding multiple connecting lines(This case does not exist for Light or Heavy rail)
+ *
+ * Future enhancment ideas:
+ *   Find the shortest connection between the 2 lines(# of stops)
+ *   Return a list of stops that will get you from the source to the dest
+ * */
+async function getRoutesString(
+  startStop: string,
+  endStop: string
+): Promise<string> {
+  const api = new MbtaApiIntegration();
+
+  let startRoutes: string[] = [];
+  let endRoutes: string[] = [];
+
+  const stopsMap = await api.buildStopsToRoutesMap([
+    RouteType.LIGHT_RAIL,
+    RouteType.HEAVY_RAIL,
+  ]);
+  const connectionsMap = await api.buildConnectionsMap(stopsMap);
+  //find out which routes the given stops are on
+
+  stopsMap.forEach((stops, route) => {
+    if (stops.includes(startStop)) {
+      startRoutes.push(route);
+    }
+    if (stops.includes(endStop)) {
+      endRoutes.push(route);
+    }
+  });
+
+  // Both stops are on the same route
+  if (
+    startRoutes.length === 1 &&
+    endRoutes.length === 1 &&
+    startRoutes[0] === endRoutes[0]
+  ) {
+    return startRoutes[0];
+  } else if (startRoutes.length === 1 && endRoutes.length > 1) {
+    // The 2 stops directly connect to each other(Ex: Red to Orange)
+    if (endRoutes.includes(startRoutes[0])) {
+      return startRoutes[0];
+    }
+  } else if (startRoutes.length > 1 && endRoutes.length === 1) {
+    // The 2 stops directly connect to each other(Ex: Red to Orange)
+    if (startRoutes.includes(endRoutes[0])) {
+      return endRoutes[0];
+    }
+  } else {
+    //Both stops have multiple routes that serve them.
+    // First we will check if both stops share a route
+    const commonRoutes = startRoutes.filter((route) =>
+      endRoutes.includes(route)
+    );
+    if (commonRoutes.length > 0) {
+      return commonRoutes[0];
+    }
+
+    // There is no Route that serves both stations so we have to find routes
+    // if there is a connection between the Routes that serve the starting station
+    // and the Routes that serve the ending station
+    let directConnection = false;
+    for (const start of startRoutes) {
+      for (const end of endRoutes) {
+        const connectingStation = findConnectingStation(
+          start,
+          end,
+          connectionsMap
+        );
+        if (connectingStation) {
+          directConnection = true;
+        }
+      }
+    }
+    if (directConnection) {
+      return `[${startRoutes.join(" OR ")}], [${endRoutes.join(" OR ")}]`;
+    }
+  }
+
+  return buildRouteListWithTransfers(startRoutes, endRoutes, connectionsMap);
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -143,7 +155,7 @@ async function main() {
   }
   const [startStop, endStop] = args;
 
-  const linesString = await q3(startStop, endStop);
+  const linesString = await getRoutesString(startStop, endStop);
   console.log(`${startStop} to ${endStop} -> ${linesString}`);
 }
 
